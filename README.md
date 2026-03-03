@@ -39,23 +39,6 @@ No accounts. No uploads. No tracking. Just a tool that respects your time and yo
 
 ---
 
-## Comparison
-
-
-
-| | This | Adobe | Online | Desktop |
-|---|:---:|:---:|:---:|:---:|
-| **100% Private** | ✅ | ⚠️ | ❌ | ✅ |
-| **No Install** | ✅ | ❌ | ✅ | ❌ |
-| **Free** | ✅ | ❌ | ⚠️ | ⚠️ |
-| **Modern UI** | ✅ | ❌ | ⚠️ | ❌ |
-| **Custom Margins** | ✅ | ⚠️ | ⚠️ | ⚠️ |
-| **Live Preview** | ✅ | ❌ | ⚠️ | ❌ |
-| **Notes Lines** | ✅ | ❌ | ❌ | ❌ |
-| **No Tracking** | ✅ | ❌ | ❌ | ⚠️ |
-
----
-
 ## Features
 
 - **Drag & drop upload** — Just drop your PDF and you're ready to go
