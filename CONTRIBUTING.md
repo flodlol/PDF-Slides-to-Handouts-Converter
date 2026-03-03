@@ -1,6 +1,12 @@
-# Contributing to PDF Hand-Out Studio
+<div align="center">
+  <img src="public/logo/1024.png" alt="Hand-Outs Logo" width="160">
+  <h1>Contributing to Hand-Outs</h1>
+  <p>Thank you for your interest in contributing! This project is a simple, privacy-first tool for turning PDF presentations into printable handout sheets, and contributions are welcome.</p>
+</div>
 
-Thank you for your interest in contributing! This project is a simple, privacy-first tool for turning PDF presentations into printable handout sheets, and contributions are welcome.
+
+
+---
 
 ## Getting Started
 
@@ -22,11 +28,17 @@ Thank you for your interest in contributing! This project is a simple, privacy-f
 
 ## Tech Stack
 
-- **Framework:** Next.js 14 (React 18)
-- **Styling:** Tailwind CSS
-- **PDF Processing:** pdf-lib, pdfjs-dist
-- **UI Components:** Radix UI
-- **Language:** TypeScript
+| Category | Technology |
+|----------|------------|
+| Framework | Next.js 14 (App Router) |
+| UI | React 18, TailwindCSS, shadcn/ui |
+| PDF Generation | pdf-lib |
+| PDF Preview | pdfjs-dist |
+| Theming | next-themes |
+| Language | TypeScript |
+
+
+---
 
 ## How to Contribute
 
@@ -63,6 +75,8 @@ Thank you for your interest in contributing! This project is a simple, privacy-f
    ```
 6. Push to your fork and open a **Pull Request**
 
+---
+
 ## Commit Message Convention
 
 We follow [Conventional Commits](https://www.conventionalcommits.org/):
@@ -77,6 +91,8 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 | `test:`    | Adding or updating tests     |
 | `chore:`   | Maintenance tasks            |
 
+---
+
 ## Guidelines
 
 - **Privacy first** — No server-side processing. All PDF handling must remain client-side.
@@ -85,19 +101,19 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 - **Accessibility** — Keep the UI accessible (keyboard navigation, screen readers).
 - **No tracking** — Do not add analytics, telemetry, or third-party tracking.
 
-## Project Structure
+---
+
+## Architecture
 
 ```
-app/          → Next.js app router pages
-components/   → React UI components
-lib/          → Core logic (PDF processing, layout engine, templates)
-public/       → Static assets (logos, images)
-styles/       → Global CSS
+app/          --> Next.js app router pages
+components/   --> React UI components
+lib/          --> Core logic (PDF processing, layout engine, templates)
+public/       --> Static assets (logos, images)
+styles/       --> Global CSS
 ```
 
-## Code of Conduct
-
-By participating, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
+---
 
 ## Questions?
 

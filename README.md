@@ -1,6 +1,6 @@
 <div align="center">
   <img src="public/logo/1024.png" alt="Hand-Outs Logo" width="160">
-  <h1>PDF Hand-Out Studio</h1>
+  <h1>Hand-Outs</h1>
   <p>A simple, privacy-first tool for turning PDF presentations into printable handout sheets.<br> Everything runs in your browser, your files never leave your device.</p>
 
 https://hand-outs.com
@@ -92,10 +92,11 @@ The app is built with **Next.js 14** using the App Router, **React 18**, and **T
 ### Architecture
 
 ```
-app/           --> Next.js App Router pages (layout.tsx, page.tsx)
-components/    --> React UI components (controls, preview, upload zone, etc.)
-lib/           --> Core logic and utilities
-styles/        --> Global CSS and Tailwind config
+app/          --> Next.js app router pages
+components/   --> React UI components
+lib/          --> Core logic (PDF processing, layout engine, templates)
+public/       --> Static assets (logos, images)
+styles/       --> Global CSS
 ```
 
 ### The layout engine
