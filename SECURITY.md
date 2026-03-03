@@ -1,11 +1,14 @@
 # Security Policy
 
+---
+
 ## Supported Versions
 
 | Version | Supported          |
 | ------- | ------------------ |
 | 1.0.x   | :white_check_mark: |
 
+---
 
 ## Reporting a Vulnerability
 If you discover a security vulnerability in PDF Hand-Out Studio, please report it responsibly.
@@ -31,6 +34,7 @@ If you discover a security vulnerability in PDF Hand-Out Studio, please report i
 - If the vulnerability is accepted, a fix will be prioritized and released as soon as possible
 - If declined, you will receive a clear explanation of why
 
+---
 
 ## Scope:
 PDF Hand-Out Studio runs entirely client-side, no files are uploaded to any server. However, we still take vulnerabilities seriously, including but not limited to:
