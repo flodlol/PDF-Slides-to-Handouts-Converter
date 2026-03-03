@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: "PDF Handout Studio",
   description: "Create polished PDF handouts with instant N-up layouts and live preview.",
   icons: {
-    icon: "/favicon/favicon.ico",
+    icon: "/favicon/favicon.svg",
     shortcut: "/favicon/favicon.ico",
     apple: "/favicon/apple-touch-icon.png",
     other: [{ rel: "mask-icon", url: "/favicon/favicon.svg" }],
