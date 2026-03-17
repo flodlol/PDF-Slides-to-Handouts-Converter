@@ -53,7 +53,7 @@ const config: Config = {
         sm: "0.6rem",
       },
       boxShadow: {
-        subtle: "0 15px 45px -25px rgba(0,0,0,0.35)",
+        subtle: "0 25px 60px -42px rgba(0, 0, 0, 0.9)",
       },
       keyframes: {
         "accordion-down": {

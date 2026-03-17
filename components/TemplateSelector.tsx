@@ -26,8 +26,8 @@ export function TemplateSelector({ templates, onSelect, currentId, onDownload }:
             }
           }}
           className={cn(
-            "flex cursor-pointer flex-col items-start rounded-lg border border-border/70 bg-background px-4 py-3 text-left shadow-sm transition hover:border-primary/60 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary",
-            currentId === tpl.id && "border-primary bg-primary/5 shadow-subtle"
+            "flex cursor-pointer flex-col items-start rounded-xl border border-border/70 bg-background/40 px-4 py-3 text-left transition hover:border-primary/60 hover:bg-background/60 focus:outline-none focus:ring-2 focus:ring-primary",
+            currentId === tpl.id && "border-primary/75 bg-primary/10"
           )}
           aria-label={`Use template ${tpl.name}`}
         >

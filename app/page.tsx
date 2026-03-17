@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist/types/src/display/api";
 import { Header } from "@/components/Header";
 import { UploadZone } from "@/components/UploadZone";
@@ -17,7 +17,6 @@ import { HandoutSettings, TemplatePreset } from "@/lib/types";
 import { Download, Settings, Zap } from "lucide-react";
 import { getCookie, setCookie } from "@/lib/cookies";
 import { SlideStrip } from "@/components/SlideStrip";
-import { useRef } from "react";
 import { CookieBanner } from "@/components/CookieBanner";
 import { Footer } from "@/components/Footer";
 import { Slider } from "@/components/ui/slider";
@@ -94,7 +93,6 @@ export default function HomePage() {
     localStorage.setItem("phs-custom-templates", JSON.stringify(customTemplates));
   }, [customTemplates, isHydrated]);
 
-  // Detect repeated elements when toggle is on and PDF / selection changes
   useEffect(() => {
     if (!pdfDoc || !settings.whiteoutEnabled || selectedPages.length < 2) {
       setWhiteoutRegions({});
@@ -119,6 +117,7 @@ export default function HomePage() {
   }, [pdfDoc, selectedPages, settings.whiteoutEnabled]);
 
   const layout = useMemo(() => buildLayoutPlan(settings), [settings]);
+  const canExport = Boolean(pdfBytes) && selectedPages.length > 0 && !isGenerating && !isParsing;
 
   const handleUpload = useCallback(async (file: File) => {
     const uploadToken = (uploadTokenRef.current += 1);
@@ -184,7 +183,6 @@ export default function HomePage() {
         throw new Error("No PDF loaded");
       })();
 
-      // Ensure we have a PDF header (%PDF)
       const hasHeader =
         sourceBytes[0] === 0x25 &&
         sourceBytes[1] === 0x50 &&
@@ -222,15 +220,22 @@ export default function HomePage() {
   }, [pdfBytes, pdfDoc, settings, meta, pageOverrides, selectedPages, whiteoutRegions]);
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-background to-muted/40">
-      <div className="container py-10">
+    <main className="min-h-screen">
+      <div className="container py-6 md:py-8">
         <Header />
 
-        <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-          <div className="space-y-4">
-            <Card>
+        <section className="mb-5 flex flex-wrap items-center gap-2">
+          <InfoChip label={meta?.name ? `Source: ${meta.name}` : "Source: none"} />
+          <InfoChip label={`Slides: ${selectedPages.length}`} />
+          <InfoChip label={`Layout: ${settings.pagesPerSheet} per sheet`} />
+          <InfoChip label={isParsing ? "Parsing..." : isDetecting ? "Analyzing..." : "Ready"} />
+        </section>
+
+        <div className="grid gap-6 xl:grid-cols-[350px_minmax(0,1fr)]">
+          <aside className="space-y-5 xl:sticky xl:top-5 xl:h-[calc(100vh-2.5rem)] xl:overflow-y-auto xl:pr-1">
+            <Card className="rounded-3xl">
               <CardHeader>
-                <CardTitle>Upload PDF</CardTitle>
+                <CardTitle>Source File</CardTitle>
               </CardHeader>
               <CardContent>
                 <UploadZone
@@ -242,20 +247,21 @@ export default function HomePage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="rounded-3xl">
               <CardHeader>
-                <CardTitle>Layout & Styling</CardTitle>
+                <CardTitle>Layout Configuration</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
+                <div className="space-y-5">
                   <ControlsPanel
                     settings={settings}
                     onChange={handleSettingsChange}
                     onReset={handleReset}
                   />
+
                   <Accordion type="single" collapsible>
                     <AccordionItem value="templates">
-                      <AccordionTrigger>Quick templates</AccordionTrigger>
+                      <AccordionTrigger>Templates</AccordionTrigger>
                       <AccordionContent>
                         <TemplateSelector
                           templates={[...templates, ...customTemplates]}
@@ -267,10 +273,11 @@ export default function HomePage() {
                           <Button
                             variant="outline"
                             size="sm"
+                            className="w-full justify-start"
                             onClick={() => {
                               const name = prompt("Template name?");
                               if (!name) return;
-                              const id = name.toLowerCase().replace(/\\s+/g, "-");
+                              const id = name.toLowerCase().replace(/\s+/g, "-");
                               const newTpl: TemplatePreset = {
                                 id,
                                 name,
@@ -286,9 +293,10 @@ export default function HomePage() {
                           <Button
                             variant="outline"
                             size="sm"
+                            className="w-full justify-start"
                             onClick={() => presetUploadRef.current?.click()}
                           >
-                            Upload preset (JSON)
+                            Upload template JSON
                           </Button>
                           <input
                             ref={presetUploadRef}
@@ -310,7 +318,7 @@ export default function HomePage() {
                                   return [...filtered, tpl];
                                 });
                                 handleTemplate(tpl);
-                              } catch (err) {
+                              } catch {
                                 alert("Could not parse preset JSON");
                               } finally {
                                 e.target.value = "";
@@ -320,6 +328,7 @@ export default function HomePage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="w-full justify-start"
                             onClick={() => {
                               setCookie("phs-default-preset", "", -1);
                               setCurrentTemplate(undefined);
@@ -333,20 +342,22 @@ export default function HomePage() {
                         </div>
                       </AccordionContent>
                     </AccordionItem>
+
                     <AccordionItem value="notes">
-                      <AccordionTrigger>Notes lines</AccordionTrigger>
+                      <AccordionTrigger>Notes Settings</AccordionTrigger>
                       <AccordionContent>
                         <div className="space-y-4">
-                          <label className="flex items-center space-x-3 rounded-lg border border-border/70 px-3 py-2">
+                          <label className="flex items-center space-x-3 rounded-lg border border-border bg-secondary px-3 py-2">
                             <Switch
                               checked={settings.notesEnabled}
                               onCheckedChange={(value) => handleSettingsChange({ notesEnabled: Boolean(value) })}
                             />
                             <span className="text-sm">Include note-taking lines</span>
                           </label>
+
                           <div className="space-y-2">
                             <div className="flex items-center justify-between text-sm">
-                              <Label>Number of lines</Label>
+                              <Label className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Number of lines</Label>
                               <span className="text-muted-foreground">{settings.notesLineCount}</span>
                             </div>
                             <Slider
@@ -358,9 +369,10 @@ export default function HomePage() {
                               onValueChange={([value]) => handleSettingsChange({ notesLineCount: value })}
                             />
                           </div>
+
                           <div className="space-y-2">
                             <div className="flex items-center justify-between text-sm">
-                              <Label>Line spacing</Label>
+                              <Label className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Line spacing</Label>
                               <span className="text-muted-foreground">{settings.notesLineSpacingMm} mm</span>
                             </div>
                             <Slider
@@ -372,8 +384,9 @@ export default function HomePage() {
                               onValueChange={([value]) => handleSettingsChange({ notesLineSpacingMm: value })}
                             />
                           </div>
+
                           <div className="space-y-2">
-                            <Label>Notes position</Label>
+                            <Label className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Notes position</Label>
                             <div className="flex flex-wrap gap-2">
                               {(["bottom", "left", "right"] as const).map((pos) => (
                                 <Button
@@ -389,9 +402,6 @@ export default function HomePage() {
                               ))}
                             </div>
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            Notes appear beneath or beside each slide slot in the export and preview.
-                          </p>
                         </div>
                       </AccordionContent>
                     </AccordionItem>
@@ -399,40 +409,20 @@ export default function HomePage() {
                 </div>
               </CardContent>
             </Card>
+          </aside>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Export</CardTitle>
+          <section className="space-y-5">
+            <Card className="min-h-[620px] rounded-3xl lg:flex lg:h-[calc(100vh-150px)] lg:min-h-[calc(100vh-150px)] lg:flex-col">
+              <CardHeader className="flex items-center justify-between space-y-0 border-b border-border pb-4">
+                <CardTitle>Preview Workspace</CardTitle>
+                <span className="text-xs text-muted-foreground">
+                  {isDetecting ? "Optimizing pages" : "Live preview"}
+                </span>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    Generates a new PDF on your device. Vector quality preserved where possible.
-                  </p>
-                  <Button
-                    className="w-full gap-2"
-                    size="lg"
-                    disabled={!pdfBytes || isGenerating}
-                    onClick={handleDownload}
-                  >
-                    {isGenerating ? <Zap className="h-4 w-4 animate-pulse" /> : <Download className="h-4 w-4" />}
-                    {isGenerating ? "Building PDF…" : "Download handout"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-8">
-            <Card className="lg:h-[calc(100vh-160px)] shadow-none border-0 bg-transparent relative z-0 mb-10">
-              <CardHeader className="flex items-center justify-between space-y-0">
-                <CardTitle>Live Preview</CardTitle>
-                <span className="text-sm text-muted-foreground">Client-side • Instant</span>
-              </CardHeader>
-              <CardContent className="h-full overflow-auto pb-8">
+              <CardContent className="flex-1 min-h-0 p-5 pt-4">
                 {!pdfDoc ? (
-                  <div className="flex h-full min-h-[400px] items-center justify-center text-muted-foreground">
-                    Upload a PDF to see the preview.
+                  <div className="flex h-full min-h-[520px] items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 text-muted-foreground">
+                    Upload a PDF to generate the workspace preview.
                   </div>
                 ) : (
                   <PreviewCanvas
@@ -451,16 +441,18 @@ export default function HomePage() {
             </Card>
 
             {pdfDoc && (
-              <Card className="shadow-none border border-border/60 bg-card relative w-full mt-12">
+              <Card className="rounded-3xl">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                  <CardTitle>Slide picker</CardTitle>
+                  <CardTitle>Slide Selection</CardTitle>
                   <Button
-                    variant="ghost"
-                    size="icon"
+                    variant="outline"
+                    size="sm"
                     onClick={() => setIsAdvancedOpen((prev) => !prev)}
                     aria-label="Advanced slide settings"
+                    className="gap-2"
                   >
                     <Settings className="h-4 w-4" />
+                    Advanced
                   </Button>
                 </CardHeader>
                 <CardContent>
@@ -478,9 +470,21 @@ export default function HomePage() {
                       setSelectedPages(Array.from({ length: pageCount }, (_, i) => i))
                     }
                     onDeselectAll={() => setSelectedPages([])}
+                    onInvertSelection={() =>
+                      setSelectedPages((prev) =>
+                        Array.from({ length: pageCount }, (_, i) => i).filter((i) => !prev.includes(i))
+                      )
+                    }
+                    onSelectOdd={() =>
+                      setSelectedPages(Array.from({ length: pageCount }, (_, i) => i).filter((i) => i % 2 === 0))
+                    }
+                    onSelectEven={() =>
+                      setSelectedPages(Array.from({ length: pageCount }, (_, i) => i).filter((i) => i % 2 === 1))
+                    }
                     maxWidth={layout.pageWidthPx * previewZoom + 160}
                     pageOverrides={pageOverrides}
                   />
+
                   <div className="mt-6">
                     <SlideOverridePanel
                       open={isAdvancedOpen}
@@ -494,11 +498,31 @@ export default function HomePage() {
                 </CardContent>
               </Card>
             )}
-          </div>
+          </section>
+        </div>
+      </div>
+      <div className="fixed bottom-5 right-5 z-40 w-[min(360px,calc(100%-2rem))]">
+        <div className="rounded-2xl border border-border bg-card/95 p-2 shadow-xl backdrop-blur">
+          <Button
+            className="h-11 w-full gap-2"
+            disabled={!canExport}
+            onClick={handleDownload}
+          >
+            {isGenerating ? <Zap className="h-4 w-4 animate-pulse" /> : <Download className="h-4 w-4" />}
+            {isGenerating ? "Building PDF..." : "Download handout"}
+          </Button>
         </div>
       </div>
       <Footer />
       <CookieBanner />
     </main>
+  );
+}
+
+function InfoChip({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center rounded-lg border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground">
+      {label}
+    </span>
   );
 }

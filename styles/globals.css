@@ -3,48 +3,48 @@
 @tailwind utilities;
 
 :root {
-  --background: 220 14% 98%;
-  --foreground: 220 19% 12%;
+  --background: 220 22% 97%;
+  --foreground: 224 19% 16%;
   --card: 0 0% 100%;
-  --card-foreground: 220 19% 12%;
+  --card-foreground: 224 19% 16%;
   --popover: 0 0% 100%;
-  --popover-foreground: 220 19% 12%;
-  --primary: 222 89% 60%;
+  --popover-foreground: 224 19% 16%;
+  --primary: 223 89% 65%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 220 15% 94%;
-  --secondary-foreground: 220 19% 12%;
-  --muted: 220 10% 95%;
-  --muted-foreground: 220 10% 40%;
-  --accent: 242 82% 66%;
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 85% 60%;
+  --secondary: 226 22% 94%;
+  --secondary-foreground: 224 19% 18%;
+  --muted: 223 18% 94%;
+  --muted-foreground: 223 12% 41%;
+  --accent: 224 95% 94%;
+  --accent-foreground: 224 70% 30%;
+  --destructive: 0 75% 55%;
   --destructive-foreground: 0 0% 100%;
-  --border: 220 13% 90%;
-  --input: 220 13% 90%;
-  --ring: 222 89% 60%;
-  --radius: 16px;
+  --border: 214 28% 88%;
+  --input: 214 28% 88%;
+  --ring: 223 89% 65%;
+  --radius: 14px;
 }
 
 .dark {
-  --background: 224 14% 9%;
-  --foreground: 0 0% 98%;
-  --card: 224 14% 12%;
-  --card-foreground: 0 0% 98%;
-  --popover: 224 14% 12%;
-  --popover-foreground: 0 0% 98%;
-  --primary: 222 89% 65%;
-  --primary-foreground: 224 14% 12%;
-  --secondary: 222 13% 16%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 222 10% 18%;
-  --muted-foreground: 222 10% 70%;
-  --accent: 310 95% 68%;
-  --accent-foreground: 224 14% 12%;
-  --destructive: 0 72% 60%;
+  --background: 222 40% 7%;
+  --foreground: 0 0% 94%;
+  --card: 224 33% 12%;
+  --card-foreground: 0 0% 94%;
+  --popover: 224 33% 12%;
+  --popover-foreground: 0 0% 94%;
+  --primary: 223 89% 65%;
+  --primary-foreground: 222 40% 10%;
+  --secondary: 235 25% 20%;
+  --secondary-foreground: 0 0% 92%;
+  --muted: 225 22% 18%;
+  --muted-foreground: 218 12% 72%;
+  --accent: 235 25% 20%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 66% 56%;
   --destructive-foreground: 0 0% 100%;
-  --border: 222 13% 20%;
-  --input: 222 13% 20%;
-  --ring: 222 89% 65%;
+  --border: 228 20% 26%;
+  --input: 228 20% 26%;
+  --ring: 223 89% 65%;
 }
 
 * {
@@ -53,7 +53,10 @@
 
 body {
   @apply bg-background text-foreground antialiased;
+  font-family: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", sans-serif;
   font-feature-settings: "ss01" on, "ss03" on, "cv01" on;
+  background-image: radial-gradient(circle at top, rgba(86, 134, 245, 0.12), transparent 42%);
+  background-color: hsl(var(--background));
 }
 
 ::-webkit-scrollbar {
@@ -71,5 +74,21 @@ body {
 }
 
 .card-glow {
-  box-shadow: 0 25px 60px -35px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 20px 36px -28px rgba(16, 24, 40, 0.25);
+}
+
+.brand-panel {
+  background: linear-gradient(180deg, hsla(var(--card), 0.98), hsla(var(--card), 0.96));
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 20px 48px -36px rgba(16, 24, 40, 0.55);
+}
+
+.tone-serf {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+}
+
+.detail-serif {
+  font-family: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", sans-serif;
+  font-style: normal;
+  letter-spacing: 0;
 }

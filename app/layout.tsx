@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import "../styles/globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Plus_Jakarta_Sans } from "next/font/google";
 
 const GA_ID = "G-G59FK49PV6";
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
   title: "PDF Handout Studio",
@@ -49,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           `}
         </Script>
       </head>
-      <body className={`${jakarta.className}`}>
+      <body>
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

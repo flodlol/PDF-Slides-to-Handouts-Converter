@@ -11,8 +11,13 @@ interface SlideStripProps {
   pdf: PDFDocumentProxy;
   selectedPages: number[];
   onToggle: (pageIndex: number) => void;
+  onSelectRange: (fromPageIndex: number, toPageIndex: number) => void;
   onSelectAll: () => void;
   onDeselectAll: () => void;
+  onInvertSelection: () => void;
+  onSelectOdd: () => void;
+  onSelectEven: () => void;
+  disabled?: boolean;
   maxWidth?: number; // cap outer container width
   pageOverrides?: Record<number, unknown>;
 }
@@ -21,8 +26,13 @@ export function SlideStrip({
   pdf,
   selectedPages,
   onToggle,
+  onSelectRange,
   onSelectAll,
   onDeselectAll,
+  onInvertSelection,
+  onSelectOdd,
+  onSelectEven,
+  disabled,
   maxWidth,
   pageOverrides,
 }: SlideStripProps) {
@@ -30,6 +40,7 @@ export function SlideStrip({
   const [thumbScale, setThumbScale] = useState(100);
   const canvasRefs = useRef<HTMLCanvasElement[]>([]);
   const renderCache = useRef<Map<number, HTMLCanvasElement>>(new Map());
+  const lastInteractedRef = useRef<number | null>(null);
 
   useEffect(() => {
     setPageCount(pdf.numPages);
@@ -72,6 +83,16 @@ export function SlideStrip({
 
   const cardWidth = Math.round(180 * (thumbScale / 100));
 
+  function handleToggle(i: number, shiftKey = false) {
+    if (disabled) return;
+    if (shiftKey && lastInteractedRef.current !== null) {
+      onSelectRange(lastInteractedRef.current, i);
+    } else {
+      onToggle(i);
+    }
+    lastInteractedRef.current = i;
+  }
+
   return (
     <div className="space-y-4 w-full">
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
@@ -79,19 +100,28 @@ export function SlideStrip({
           Slides ({selectedPages.length}/{pageCount})
         </span>
         <div className="flex flex-wrap gap-1">
-          <Button variant="ghost" size="sm" onClick={onSelectAll}>
+          <Button variant="ghost" size="sm" onClick={onSelectAll} disabled={disabled}>
             Select all
           </Button>
-          <Button variant="ghost" size="sm" onClick={onDeselectAll}>
+          <Button variant="ghost" size="sm" onClick={onDeselectAll} disabled={disabled}>
             Deselect all
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onInvertSelection} disabled={disabled}>
+            Invert
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onSelectOdd} disabled={disabled}>
+            Odd
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onSelectEven} disabled={disabled}>
+            Even
           </Button>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border/60 bg-card/60 p-4 shadow-sm">
+      <div className="rounded-xl border border-border bg-secondary/70 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
           <span>Tip: click a slide to include/exclude it</span>
-          <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background/60 px-3 py-1.5">
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5">
             <Label className="text-xs">Thumbnail scale</Label>
             <div className="w-[140px]">
               <Slider
@@ -99,6 +129,7 @@ export function SlideStrip({
                 min={70}
                 max={140}
                 step={5}
+                disabled={disabled}
                 onValueChange={([value]) => setThumbScale(value)}
               />
             </div>
@@ -108,7 +139,7 @@ export function SlideStrip({
       </div>
 
       <div
-        className="rounded-xl border border-border/60 bg-muted/50 p-4 w-full"
+        className="w-full rounded-xl border border-border bg-muted/30 p-4"
         style={maxWidth ? { maxWidth, margin: "0 auto" } : undefined}
       >
         <div
@@ -124,11 +155,12 @@ export function SlideStrip({
               <div
                 key={i}
                 className={cn(
-                  "relative flex flex-col gap-2 rounded-lg border px-3 py-3 transition cursor-pointer bg-background/80",
+                  "relative flex cursor-pointer flex-col gap-2 rounded-lg border bg-background px-3 py-3 transition",
                   isIncluded ? "border-primary/60 ring-2 ring-primary/30" : "border-border",
-                  !isIncluded && "opacity-60"
+                  !isIncluded && "opacity-60",
+                  disabled && "cursor-not-allowed opacity-70"
                 )}
-                onClick={() => onToggle(i)}
+                onClick={(event) => handleToggle(i, event.shiftKey)}
               >
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                   <span>Slide {i + 1}</span>
@@ -136,8 +168,12 @@ export function SlideStrip({
                     <input
                       type="checkbox"
                       checked={isIncluded}
-                      onClick={(event) => event.stopPropagation()}
-                      onChange={() => onToggle(i)}
+                      disabled={disabled}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleToggle(i, event.shiftKey);
+                      }}
+                      onChange={() => {}}
                       className="h-3 w-3 rounded border-border/70 text-primary"
                     />
                     <span>Include</span>

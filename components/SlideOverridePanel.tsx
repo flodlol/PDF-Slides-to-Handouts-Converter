@@ -125,7 +125,7 @@ export function SlideOverridePanel({
   if (!open) return null;
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-card/60 p-6 shadow-sm">
+    <div className="rounded-xl border border-border bg-secondary/60 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Advanced slide settings</h3>
@@ -140,7 +140,7 @@ export function SlideOverridePanel({
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         <div className="space-y-4">
-          <div className="rounded-xl border border-border/60 bg-background/60 p-4 text-xs text-muted-foreground">
+          <div className="rounded-lg border border-border bg-background p-4 text-xs text-muted-foreground">
             {selectionSummary}
           </div>
 
@@ -148,8 +148,8 @@ export function SlideOverridePanel({
             className={cn("space-y-4", overrideSelection.length === 0 && "pointer-events-none opacity-50")}
           >
             <ControlsPanel settings={selectionSettings} onChange={applyOverridePatch} />
-            <div className="rounded-xl border border-border/60 bg-background/60 p-4 space-y-4">
-              <label className="flex items-center space-x-3 rounded-lg border border-border/70 px-3 py-2">
+            <div className="space-y-4 rounded-lg border border-border bg-background p-4">
+              <label className="flex items-center space-x-3 rounded-lg border border-border bg-secondary px-3 py-2">
                 <Switch
                   checked={selectionSettings.notesEnabled}
                   onCheckedChange={(value) => applyOverridePatch({ notesEnabled: Boolean(value) })}
@@ -211,7 +211,7 @@ export function SlideOverridePanel({
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
             <span>Slides ({overrideSelection.length}/{pageCount})</span>
-            <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background/60 px-3 py-1.5">
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5">
               <Label className="text-xs">Thumbnail scale</Label>
               <div className="w-[140px]">
                 <Slider
@@ -226,7 +226,7 @@ export function SlideOverridePanel({
             </div>
           </div>
 
-          <div className="rounded-xl border border-border/60 bg-muted/40 p-4">
+          <div className="rounded-lg border border-border bg-muted/25 p-4">
             <div
               className="grid gap-4"
               style={{
@@ -240,7 +240,7 @@ export function SlideOverridePanel({
                   <div
                     key={i}
                     className={cn(
-                      "relative flex flex-col gap-2 rounded-lg border px-3 py-3 transition cursor-pointer bg-background/80",
+                      "relative flex cursor-pointer flex-col gap-2 rounded-lg border bg-background px-3 py-3 transition",
                       isSelected ? "border-primary/60 ring-2 ring-primary/30" : "border-border",
                       !hasOverride && "opacity-90"
                     )}

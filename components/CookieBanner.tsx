@@ -28,15 +28,12 @@ export function CookieBanner() {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-50 w-[min(640px,calc(100%-24px))] -translate-x-1/2 rounded-2xl border border-border/70 bg-card/95 shadow-xl backdrop-blur">
+    <div className="fixed bottom-4 left-1/2 z-50 w-[min(680px,calc(100%-24px))] -translate-x-1/2 rounded-2xl border border-border/70 bg-card/95 shadow-xl backdrop-blur">
       <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4 sm:p-5">
         <div className="flex-1">
-          <p className="text-sm font-semibold flex items-center gap-2">
-            <span aria-hidden="true">🍪</span>
-            <span>Cookies for preferences</span>
-          </p>
+          <p className="text-sm font-semibold">Cookies for saved preferences</p>
           <p className="text-xs text-muted-foreground">
-            We use a few cookies to remember your layout presets and theme choice. No tracking or analytics.
+            We only store minimal cookies for theme and presets. No ad tracking and no third-party analytics from this banner.
           </p>
         </div>
         <div className="flex gap-2">

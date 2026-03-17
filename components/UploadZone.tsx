@@ -11,6 +11,7 @@ interface UploadZoneProps {
   fileName?: string;
   fileSize?: number;
   isLoading?: boolean;
+  disabled?: boolean;
 }
 
 function formatSize(bytes?: number) {
@@ -20,7 +21,7 @@ function formatSize(bytes?: number) {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-export function UploadZone({ onFile, fileName, fileSize, isLoading }: UploadZoneProps) {
+export function UploadZone({ onFile, fileName, fileSize, isLoading, disabled }: UploadZoneProps) {
   const [error, setError] = useState<string | null>(null);
 
   const accept = useMemo(() => ({ "application/pdf": [".pdf"] }), []);
@@ -44,25 +45,29 @@ export function UploadZone({ onFile, fileName, fileSize, isLoading }: UploadZone
     multiple: false,
     maxFiles: 1,
     noKeyboard: true,
+    disabled,
     onDropAccepted: handleAccept,
     onDropRejected: handleReject,
   });
 
   const handleBrowse = useCallback(
     (event: MouseEvent) => {
+      if (disabled) return;
       event.preventDefault();
       event.stopPropagation();
       open();
     },
-    [open]
+    [disabled, open]
   );
 
   return (
     <div
       className={cn(
-        "group flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border/80 bg-muted/40 px-4 py-6 text-center transition hover:border-primary/60 hover:bg-muted",
-        isDragActive && "border-primary/80 bg-primary/5",
-        fileName && "border-dashed border-border"
+        "group flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/30 px-4 py-6 text-center transition hover:border-primary/60 hover:bg-accent/40",
+        isDragActive && "border-primary/80 bg-accent/60",
+        fileName && "border-border"
+      ,
+        disabled && "cursor-not-allowed opacity-70 hover:border-border hover:bg-muted/30"
       )}
       {...getRootProps()}
     >
@@ -70,7 +75,7 @@ export function UploadZone({ onFile, fileName, fileSize, isLoading }: UploadZone
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
         {fileName ? <FileDown /> : <Upload />}
       </div>
-      <p className="mt-3 text-base font-semibold">
+      <p className="mt-3 text-base font-semibold tracking-tight">
         {fileName ? "PDF loaded" : "Drop your PDF or click to upload"}
       </p>
       <p className="text-sm text-muted-foreground">
@@ -83,7 +88,7 @@ export function UploadZone({ onFile, fileName, fileSize, isLoading }: UploadZone
         </p>
       )}
       <div className="mt-4">
-        <Button variant="secondary" size="sm" type="button" onClick={handleBrowse}>
+        <Button variant="secondary" size="sm" type="button" onClick={handleBrowse} disabled={disabled}>
           Browse
         </Button>
       </div>

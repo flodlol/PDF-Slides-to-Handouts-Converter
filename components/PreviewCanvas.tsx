@@ -26,8 +26,8 @@ export function PreviewCanvas({
   settings,
   pageCount,
   selectedPages,
-  currentOutputPage,
-  onPageChange,
+  currentOutputPage: _currentOutputPage,
+  onPageChange: _onPageChange,
   zoom,
   pageOverrides,
   whiteoutRegions,
@@ -220,25 +220,25 @@ export function PreviewCanvas({
   }, [pdf, settings, pageCount, zoom, outputPageCount, effectivePages, outputPlan, layoutCache, pageOverrides, whiteoutRegions]);
 
   return (
-    <div className="flex flex-col space-y-3 h-full">
-      <div className="flex items-center justify-end text-sm text-muted-foreground pr-2">
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      <div className="flex items-center justify-end pr-2 text-sm text-muted-foreground">
         <span>
           Slides: {effectivePages.length} • Pages: {outputPageCount}
         </span>
       </div>
       <div
-        className="relative w-full h-full rounded-xl border border-border/60 bg-background overflow-hidden"
-        style={{ isolation: "isolate", position: "relative", zIndex: 1, boxShadow: "none", marginBottom: "32px" }}
+        className="relative flex-1 min-h-0 w-full overflow-hidden rounded-xl border border-border bg-muted/25"
+        style={{ isolation: "isolate", position: "relative", zIndex: 1 }}
       >
-        <div className="max-h-[78vh] overflow-y-auto overflow-x-hidden p-6">
-          <div className="flex flex-col items-center gap-10 pb-8">
+        <div className="h-full overflow-y-auto overflow-x-hidden p-5">
+          <div className="flex flex-col items-center gap-8 pb-5">
             {Array.from({ length: outputPageCount }, (_, i) => (
               <div key={i} className="flex justify-center w-full">
                 <canvas
                   ref={(el) => {
                     if (el) canvasRefs.current[i] = el;
                   }}
-                  className="rounded-lg transition bg-white border border-border/60"
+                  className="rounded-md border border-border bg-white transition"
                   style={{ maxWidth: "100%", display: "block" }}
                 />
               </div>
