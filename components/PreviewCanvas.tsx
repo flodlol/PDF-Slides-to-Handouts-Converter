@@ -13,13 +13,18 @@ interface PreviewCanvasProps {
   pdf: PDFDocumentProxy | null;
   settings: HandoutSettings;
   pageCount: number;
-  selectedPages: number[]; // zero-based indices reflecting selection order
-  currentOutputPage: number; // kept for compatibility; not used when scrolling all pages
+  selectedPages: number[];
+  currentOutputPage: number;
   onPageChange: (page: number) => void;
   zoom: number;
   pageOverrides: SlideSettingsOverrideMap;
   whiteoutRegions: WhiteoutMap;
+  chapterStartPageIndices?: number[];
+  forceOddChapterStart?: boolean;
 }
+
+const INITIAL_VISIBLE_PAGES = 3;
+const MAX_SOURCE_PAGE_CACHE = 36;
 
 export function PreviewCanvas({
   pdf,
@@ -31,20 +36,36 @@ export function PreviewCanvas({
   zoom,
   pageOverrides,
   whiteoutRegions,
+  chapterStartPageIndices = [],
+  forceOddChapterStart = false,
 }: PreviewCanvasProps) {
   const canvasRefs = useRef<HTMLCanvasElement[]>([]);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
   const cacheRef = useRef<Map<number, HTMLCanvasElement>>(new Map());
+  const renderedPagesRef = useRef<Set<number>>(new Set());
+  const renderVersionRef = useRef(0);
   const [isRendering, setIsRendering] = useState(false);
+  const [visibleRange, setVisibleRange] = useState<{ start: number; end: number }>({
+    start: 0,
+    end: INITIAL_VISIBLE_PAGES - 1,
+  });
 
   const effectivePages = useMemo(
     () => (selectedPages.length > 0 ? selectedPages : Array.from({ length: pageCount }, (_, i) => i)),
     [selectedPages, pageCount]
   );
+
   const outputPlan = useMemo(
-    () => buildOutputPlan(effectivePages, settings, pageOverrides),
-    [effectivePages, settings, pageOverrides]
+    () =>
+      buildOutputPlan(effectivePages, settings, pageOverrides, {
+        chapterStartPageIndices,
+        forceOddChapterStart,
+      }),
+    [effectivePages, settings, pageOverrides, chapterStartPageIndices, forceOddChapterStart]
   );
+
   const outputPageCount = Math.max(1, outputPlan.length);
+
   const layoutCache = useMemo(() => {
     const cache = new Map<string, ReturnType<typeof buildLayoutPlan>>();
     outputPlan.forEach((plan) => {
@@ -61,22 +82,81 @@ export function PreviewCanvas({
   }, [outputPlan, settings]);
 
   useEffect(() => {
+    renderVersionRef.current += 1;
+    renderedPagesRef.current.clear();
+    setVisibleRange({
+      start: 0,
+      end: Math.max(0, Math.min(outputPageCount - 1, INITIAL_VISIBLE_PAGES - 1)),
+    });
+  }, [pdf, outputPlan, outputPageCount, settings, zoom, pageOverrides, whiteoutRegions]);
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    const baseLayout = layoutCache.get(JSON.stringify(settings));
+    if (!baseLayout || !scroller) {
+      setVisibleRange({
+        start: 0,
+        end: Math.max(0, Math.min(outputPageCount - 1, INITIAL_VISIBLE_PAGES - 1)),
+      });
+      return;
+    }
+
+    const pageStep = Math.max(1, Math.round(baseLayout.pageHeightPx * zoom) + 36);
+
+    const updateRange = () => {
+      const top = scroller.scrollTop;
+      const viewport = scroller.clientHeight || pageStep * 2;
+      const start = Math.max(0, Math.floor(top / pageStep) - 1);
+      const end = Math.min(outputPageCount - 1, Math.ceil((top + viewport) / pageStep) + 1);
+      setVisibleRange((prev) =>
+        prev.start === start && prev.end === end ? prev : { start, end }
+      );
+    };
+
+    updateRange();
+    scroller.addEventListener("scroll", updateRange, { passive: true });
+    window.addEventListener("resize", updateRange);
+
+    return () => {
+      scroller.removeEventListener("scroll", updateRange);
+      window.removeEventListener("resize", updateRange);
+    };
+  }, [layoutCache, outputPageCount, settings, zoom]);
+
+  useEffect(() => {
     let cancelled = false;
-    async function renderAll() {
+    const version = renderVersionRef.current;
+
+    async function renderVisiblePages() {
       if (!pdf) return;
-      setIsRendering(true);
-      const dpr = window.devicePixelRatio || 1;
       const baseLayout = layoutCache.get(JSON.stringify(settings));
       if (!baseLayout) return;
+
+      const pagesToRender: number[] = [];
+      for (let i = visibleRange.start; i <= visibleRange.end; i++) {
+        if (i >= 0 && i < outputPageCount && !renderedPagesRef.current.has(i)) {
+          pagesToRender.push(i);
+        }
+      }
+
+      if (pagesToRender.length === 0) {
+        setIsRendering(false);
+        return;
+      }
+
+      setIsRendering(true);
+
+      const dpr = window.devicePixelRatio || 1;
       const scaledWidth = Math.round(baseLayout.pageWidthPx * zoom);
       const scaledHeight = Math.round(baseLayout.pageHeightPx * zoom);
 
-      const pages = Array.from({ length: outputPageCount }, (_, i) => i);
+      for (const outIndex of pagesToRender) {
+        if (cancelled || renderVersionRef.current !== version) return;
 
-      for (const outIndex of pages) {
         const plan = outputPlan[outIndex];
         const layout = plan ? layoutCache.get(JSON.stringify(plan.settings)) : baseLayout;
         if (!layout || !plan) continue;
+
         const canvas = canvasRefs.current[outIndex];
         if (!canvas) continue;
         const ctx = canvas.getContext("2d");
@@ -94,11 +174,22 @@ export function PreviewCanvas({
         const slots = layout.slotsPx;
         const slotsMm = layout.slots;
 
-        for (let i = 0; i < plan.pageIndices.length; i++) {
-          const pageNumber = plan.pageIndices[i] + 1; // pdf.js is 1-based
+        if (plan.isSpacer) {
+          ctx.fillStyle = "rgba(80,92,118,0.1)";
+          ctx.fillRect(0, 0, scaledWidth, scaledHeight);
+          ctx.fillStyle = "rgba(90,105,130,0.9)";
+          ctx.font = `${14 * zoom}px 'SF Pro Text', -apple-system, 'Segoe UI', system-ui`;
+          const label = "Blank spacer page";
+          const textWidth = ctx.measureText(label).width;
+          ctx.fillText(label, (scaledWidth - textWidth) / 2, scaledHeight / 2);
+          renderedPagesRef.current.add(outIndex);
+          continue;
+        }
 
+        for (let i = 0; i < plan.pageIndices.length; i++) {
+          const pageNumber = plan.pageIndices[i] + 1;
           const sourceCanvas = await renderPageToCanvas(pageNumber, pdf, cacheRef.current);
-          if (cancelled) return;
+          if (cancelled || renderVersionRef.current !== version) return;
 
           const slot = slots[i];
           const slotMm = slotsMm[i];
@@ -116,6 +207,7 @@ export function PreviewCanvas({
           const renderScale = fit * (plan.settings.scale / 100) * zoom;
           const renderWidth = sourceCanvas.width * renderScale;
           const renderHeight = sourceCanvas.height * renderScale;
+
           const x =
             notes.position === "left"
               ? slot.x * zoom + sideOffsetPx * zoom + (contentWidthPx * zoom - renderWidth) / 2
@@ -127,7 +219,6 @@ export function PreviewCanvas({
           ctx.imageSmoothingQuality = "high";
           ctx.drawImage(sourceCanvas, x, y, renderWidth, renderHeight);
 
-          // Draw whiteout rectangles over repeated elements
           const pageRegions = plan.settings.whiteoutEnabled ? whiteoutRegions[plan.pageIndices[i]] : undefined;
           if (pageRegions && pageRegions.length > 0) {
             ctx.save();
@@ -151,6 +242,7 @@ export function PreviewCanvas({
             ctx.strokeRect(slot.x * zoom, slot.y * zoom, slot.width * zoom, slot.height * zoom);
           }
           ctx.restore();
+
           if (notes.enabled) {
             const gapPx = mmToPx(notes.gapMm) * zoom;
             const lineSpacingPx = mmToPx(notes.lineSpacingMm) * zoom;
@@ -183,7 +275,7 @@ export function PreviewCanvas({
 
         if (plan.settings.showPageNumbers) {
           ctx.fillStyle = "rgba(110,120,140,0.9)";
-          ctx.font = `${12 * zoom}px 'Plus Jakarta Sans', 'Segoe UI', system-ui, -apple-system`;
+          ctx.font = `${12 * zoom}px 'SF Pro Text', -apple-system, 'Segoe UI', system-ui`;
           const label = `${outIndex + 1} / ${outputPageCount}`;
           const textWidth = ctx.measureText(label).width;
           ctx.fillText(label, (scaledWidth - textWidth) / 2, scaledHeight - 12 * zoom);
@@ -191,7 +283,7 @@ export function PreviewCanvas({
 
         if (plan.settings.showSlideNumbers) {
           ctx.fillStyle = "rgba(70,80,95,0.9)";
-          ctx.font = `${11 * zoom}px 'Plus Jakarta Sans', 'Segoe UI', system-ui, -apple-system`;
+          ctx.font = `${11 * zoom}px 'SF Pro Text', -apple-system, 'Segoe UI', system-ui`;
           plan.pageIndices.forEach((pageIndex, i) => {
             const slot = slots[i];
             const slotMm = slotsMm[i];
@@ -205,19 +297,31 @@ export function PreviewCanvas({
             ctx.fillText(label, x, y);
           });
         }
+
+        renderedPagesRef.current.add(outIndex);
       }
-      setIsRendering(false);
+
+      if (!cancelled && renderVersionRef.current === version) {
+        setIsRendering(false);
+      }
     }
 
-    const handle = window.setTimeout(() => {
-      void renderAll();
-    }, 90);
+    void renderVisiblePages();
 
     return () => {
       cancelled = true;
-      window.clearTimeout(handle);
     };
-  }, [pdf, settings, pageCount, zoom, outputPageCount, effectivePages, outputPlan, layoutCache, pageOverrides, whiteoutRegions]);
+  }, [
+    pdf,
+    settings,
+    zoom,
+    outputPageCount,
+    outputPlan,
+    layoutCache,
+    pageOverrides,
+    whiteoutRegions,
+    visibleRange,
+  ]);
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
@@ -230,10 +334,10 @@ export function PreviewCanvas({
         className="relative flex-1 min-h-0 w-full overflow-hidden rounded-xl border border-border bg-muted/25"
         style={{ isolation: "isolate", position: "relative", zIndex: 1 }}
       >
-        <div className="h-full overflow-y-auto overflow-x-hidden p-5">
+        <div ref={scrollerRef} className="h-full overflow-y-auto overflow-x-hidden p-5">
           <div className="flex flex-col items-center gap-8 pb-5">
             {Array.from({ length: outputPageCount }, (_, i) => (
-              <div key={i} className="flex justify-center w-full">
+              <div key={i} className="flex w-full justify-center">
                 <canvas
                   ref={(el) => {
                     if (el) canvasRefs.current[i] = el;
@@ -261,7 +365,11 @@ async function renderPageToCanvas(
   cache: Map<number, HTMLCanvasElement>
 ) {
   const cached = cache.get(pageNumber);
-  if (cached) return cached;
+  if (cached) {
+    cache.delete(pageNumber);
+    cache.set(pageNumber, cached);
+    return cached;
+  }
 
   const page = await pdf.getPage(pageNumber);
   const viewport = page.getViewport({ scale: 1.3 });
@@ -270,7 +378,16 @@ async function renderPageToCanvas(
   canvas.width = viewport.width;
   canvas.height = viewport.height;
   if (!context) return canvas;
+
   await page.render({ canvasContext: context, viewport }).promise;
   cache.set(pageNumber, canvas);
+
+  if (cache.size > MAX_SOURCE_PAGE_CACHE) {
+    const oldestKey = cache.keys().next().value as number | undefined;
+    if (typeof oldestKey === "number") {
+      cache.delete(oldestKey);
+    }
+  }
+
   return canvas;
 }

@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 
+const MAX_THUMBNAIL_CACHE = 120;
+
 interface SlideStripProps {
   pdf: PDFDocumentProxy;
   selectedPages: number[];
   onToggle: (pageIndex: number) => void;
-  onSelectRange: (fromPageIndex: number, toPageIndex: number) => void;
+  onSelectRange?: (fromPageIndex: number, toPageIndex: number) => void;
   onSelectAll: () => void;
   onDeselectAll: () => void;
   onInvertSelection: () => void;
@@ -62,6 +64,10 @@ export function SlideStrip({
         if (!ctx) continue;
         await page.render({ canvasContext: ctx, viewport: thumbViewport }).promise;
         renderCache.current.set(i, canvas);
+        if (renderCache.current.size > MAX_THUMBNAIL_CACHE) {
+          const oldestKey = renderCache.current.keys().next().value as number | undefined;
+          if (typeof oldestKey === "number") renderCache.current.delete(oldestKey);
+        }
         if (cancelled) break;
         const target = canvasRefs.current[i];
         if (target) drawToTarget(canvas, target);
@@ -85,7 +91,7 @@ export function SlideStrip({
 
   function handleToggle(i: number, shiftKey = false) {
     if (disabled) return;
-    if (shiftKey && lastInteractedRef.current !== null) {
+    if (shiftKey && onSelectRange && lastInteractedRef.current !== null) {
       onSelectRange(lastInteractedRef.current, i);
     } else {
       onToggle(i);
@@ -168,12 +174,12 @@ export function SlideStrip({
                     <input
                       type="checkbox"
                       checked={isIncluded}
+                      readOnly
                       disabled={disabled}
                       onClick={(event) => {
                         event.stopPropagation();
                         handleToggle(i, event.shiftKey);
                       }}
-                      onChange={() => {}}
                       className="h-3 w-3 rounded border-border/70 text-primary"
                     />
                     <span>Include</span>

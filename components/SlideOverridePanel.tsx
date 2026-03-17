@@ -12,6 +12,8 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { ControlsPanel } from "@/components/ControlsPanel";
 
+const MAX_THUMBNAIL_CACHE = 120;
+
 interface SlideOverridePanelProps {
   open: boolean;
   pdf: PDFDocumentProxy;
@@ -60,6 +62,10 @@ export function SlideOverridePanel({
         if (!ctx) continue;
         await page.render({ canvasContext: ctx, viewport: thumbViewport }).promise;
         renderCache.current.set(i, canvas);
+        if (renderCache.current.size > MAX_THUMBNAIL_CACHE) {
+          const oldestKey = renderCache.current.keys().next().value as number | undefined;
+          if (typeof oldestKey === "number") renderCache.current.delete(oldestKey);
+        }
         if (cancelled) break;
         const target = canvasRefs.current[i];
         if (target) drawToTarget(canvas, target);
