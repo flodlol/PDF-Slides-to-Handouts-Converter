@@ -69,7 +69,7 @@ export default function HomePage() {
   const [whiteoutRegions, setWhiteoutRegions] = useState<WhiteoutMap>({});
   const [isDetecting, setIsDetecting] = useState(false);
   const [courseChapters, setCourseChapters] = useState<CourseChapter[]>([]);
-  const [includeContentsTable, setIncludeContentsTable] = useState(true);
+  const [includeContentsTable, setIncludeContentsTable] = useState(false);
   const [forceOddChapterStart, setForceOddChapterStart] = useState(true);
   const [appError, setAppError] = useState<AppErrorState | null>(null);
   const [exportStage, setExportStage] = useState<"idle" | "validating" | "rendering" | "finalizing">("idle");
