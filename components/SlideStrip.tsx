@@ -146,7 +146,7 @@ export function SlideStrip({
 
       <div
         className="w-full rounded-xl border border-border bg-muted/30 p-4"
-        style={maxWidth ? { maxWidth, margin: "0 auto" } : undefined}
+        style={maxWidth ? { maxWidth, margin: "10px auto" } : undefined}
       >
         <div
           className="grid gap-4"

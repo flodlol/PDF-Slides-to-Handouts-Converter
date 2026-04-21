@@ -678,7 +678,7 @@ export default function HomePage() {
               </CardHeader>
               <CardContent className="flex-1 min-h-0 p-5 pt-4">
                 {!pdfDoc ? (
-                  <div className="flex h-full min-h-[520px] items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 text-muted-foreground">
+                  <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 text-muted-foreground">
                     Upload one or more PDFs to generate the workspace preview.
                   </div>
                 ) : (
