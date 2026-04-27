@@ -271,8 +271,8 @@ export function SlideOverridePanel({
                 <div
                   key={i}
                   className={cn(
-                    "relative flex cursor-pointer flex-col gap-2 rounded-lg border bg-background px-3 py-3 transition",
-                    isSelected ? "border-primary/60 ring-2 ring-primary/30" : "border-border",
+                    "relative flex cursor-pointer flex-col gap-2 rounded-lg bg-background px-3 py-3 transition",
+                    isSelected ? "border-2 border-primary" : "border border-border",
                     !isIncluded && "opacity-60",
                     disabled && "cursor-not-allowed opacity-70"
                   )}
@@ -440,8 +440,8 @@ export function SlideOverridePanel({
                   <div
                     key={i}
                     className={cn(
-                      "relative flex cursor-pointer flex-col gap-2 rounded-lg border bg-background px-3 py-3 transition",
-                      isSelected ? "border-primary/60 ring-2 ring-primary/30" : "border-border",
+                      "relative flex cursor-pointer flex-col gap-2 rounded-lg bg-background px-3 py-3 transition",
+                      isSelected ? "border-2 border-primary" : "border border-border",
                       !hasOverride && "opacity-90"
                     )}
                     onClick={() => toggleSelection(i)}

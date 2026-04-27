@@ -161,8 +161,8 @@ export function SlideStrip({
               <div
                 key={i}
                 className={cn(
-                  "relative flex cursor-pointer flex-col gap-2 rounded-lg border bg-background px-3 py-3 transition",
-                  isIncluded ? "border-primary/60 ring-2 ring-primary/30" : "border-border",
+                  "relative flex cursor-pointer flex-col gap-2 rounded-lg bg-background px-3 py-3 transition",
+                  isIncluded ? "border-2 border-primary" : "border border-border",
                   !isIncluded && "opacity-60",
                   disabled && "cursor-not-allowed opacity-70"
                 )}
