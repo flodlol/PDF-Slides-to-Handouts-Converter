@@ -141,6 +141,13 @@ export default function HomePage() {
     };
   }, [pdfDoc, selectedPages, settings.whiteoutEnabled]);
 
+  useEffect(() => {
+    if (!pdfDoc) return;
+    setOverrideSelection([]);
+    setSelectedPages(Array.from({ length: pageCount }, (_, i) => i));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdvancedOpen]);
+
   const layout = useMemo(() => buildLayoutPlan(settings), [settings]);
   const isInteractionLocked = isParsing || isGenerating;
   const isBusy = isInteractionLocked || isDetecting;
@@ -749,6 +756,15 @@ export default function HomePage() {
                       view="grid"
                       overrideSelection={overrideSelection}
                       onOverrideSelectionChange={setOverrideSelection}
+                      selectedPages={selectedPages}
+                      onTogglePage={(pageIndex) =>
+                        setSelectedPages((prev) =>
+                          prev.includes(pageIndex)
+                            ? prev.filter((p) => p !== pageIndex)
+                            : [...prev, pageIndex].sort((a, b) => a - b)
+                        )
+                      }
+                      disabled={isInteractionLocked}
                     />
                   ) : (
                     <SlideStrip

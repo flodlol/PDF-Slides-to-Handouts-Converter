@@ -27,6 +27,10 @@ interface SlideOverridePanelProps {
   /** Required when view is set — lifted selection state from parent */
   overrideSelection?: number[];
   onOverrideSelectionChange?: (next: number[]) => void;
+  /** Include/exclude state for the grid view */
+  selectedPages?: number[];
+  onTogglePage?: (pageIndex: number) => void;
+  disabled?: boolean;
 }
 
 export function SlideOverridePanel({
@@ -40,6 +44,9 @@ export function SlideOverridePanel({
   view,
   overrideSelection: externalSelection,
   onOverrideSelectionChange,
+  selectedPages,
+  onTogglePage,
+  disabled = false,
 }: SlideOverridePanelProps) {
   const [pageCount, setPageCount] = useState(0);
   const [thumbScale, setThumbScale] = useState(100);
@@ -259,19 +266,37 @@ export function SlideOverridePanel({
             {Array.from({ length: pageCount }, (_, i) => {
               const isSelected = overrideSelection.includes(i);
               const hasOverride = Boolean(pageOverrides[i]);
+              const isIncluded = selectedPages ? selectedPages.includes(i) : true;
               return (
                 <div
                   key={i}
                   className={cn(
                     "relative flex cursor-pointer flex-col gap-2 rounded-lg border bg-background px-3 py-3 transition",
                     isSelected ? "border-primary/60 ring-2 ring-primary/30" : "border-border",
-                    !hasOverride && "opacity-90"
+                    !isIncluded && "opacity-60",
+                    disabled && "cursor-not-allowed opacity-70"
                   )}
-                  onClick={() => toggleSelection(i)}
+                  onClick={() => !disabled && toggleSelection(i)}
                 >
                   <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                     <span>Slide {i + 1}</span>
-                    {hasOverride && <span className="text-[10px] text-primary">Override</span>}
+                    <div className="flex items-center gap-2">
+                      {hasOverride && <span className="text-[10px] text-primary">Override</span>}
+                      <label className="flex items-center gap-1">
+                        <input
+                          type="checkbox"
+                          checked={isIncluded}
+                          readOnly
+                          disabled={disabled}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onTogglePage?.(i);
+                          }}
+                          className="h-3 w-3 rounded border-border/70 text-primary"
+                        />
+                        <span>Include</span>
+                      </label>
+                    </div>
                   </div>
 
                   <div className="relative">
@@ -279,12 +304,18 @@ export function SlideOverridePanel({
                       ref={(el) => {
                         if (el) canvasRefs.current[i] = el;
                       }}
-                      className="rounded bg-white"
+                      className={cn("rounded bg-white", !isIncluded && "opacity-60")}
                       style={{ width: "100%", height: "auto" }}
                     />
+                    {hasOverride && (
+                      <span className="absolute left-2 top-2 rounded-full bg-primary/90 px-2 py-0.5 text-[10px] font-medium text-primary-foreground">
+                        Override
+                      </span>
+                    )}
                   </div>
 
-                  {isSelected && <span className="text-[10px] text-primary">Selected</span>}
+                  {!isIncluded && <span className="text-[10px] text-destructive">Excluded</span>}
+                  {isSelected && isIncluded && <span className="text-[10px] text-primary">Selected</span>}
                 </div>
               );
             })}
