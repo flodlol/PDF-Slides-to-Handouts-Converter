@@ -56,6 +56,7 @@ body {
   font-family: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", sans-serif;
   font-feature-settings: "ss01" on, "ss03" on, "cv01" on;
   background-image: radial-gradient(circle at top, rgba(86, 134, 245, 0.12), transparent 42%);
+  background-attachment: fixed;
   background-color: hsl(var(--background));
 }
 
