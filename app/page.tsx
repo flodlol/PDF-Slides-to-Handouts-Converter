@@ -65,6 +65,7 @@ export default function HomePage() {
   const [meta, setMeta] = useState<LoadedPdfMeta | null>(null);
   const [currentOutputPage, setCurrentOutputPage] = useState(0);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [overrideSelection, setOverrideSelection] = useState<number[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
   const [whiteoutRegions, setWhiteoutRegions] = useState<WhiteoutMap>({});
   const [isDetecting, setIsDetecting] = useState(false);
@@ -428,6 +429,26 @@ export default function HomePage() {
               </CardContent>
             </Card>
 
+            {isAdvancedOpen && pdfDoc ? (
+              <Card className="rounded-3xl">
+                <CardHeader>
+                  <CardTitle>Advanced Slide Settings</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <SlideOverridePanel
+                    open={true}
+                    pdf={pdfDoc}
+                    settings={settings}
+                    pageOverrides={pageOverrides}
+                    onOverridesChange={setPageOverrides}
+                    onClose={() => setIsAdvancedOpen(false)}
+                    view="controls"
+                    overrideSelection={overrideSelection}
+                    onOverrideSelectionChange={setOverrideSelection}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
             <Card className="rounded-3xl">
               <CardHeader>
                 <CardTitle>Layout Configuration</CardTitle>
@@ -666,6 +687,7 @@ export default function HomePage() {
                 </div>
               </CardContent>
             </Card>
+            )}
           </aside>
 
           <section className="space-y-5">
@@ -712,58 +734,61 @@ export default function HomePage() {
                     className="gap-2"
                   >
                     <Settings className="h-4 w-4" />
-                    Advanced
+                    {isAdvancedOpen ? "Normal" : "Advanced"}
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <SlideStrip
-                    pdf={pdfDoc}
-                    selectedPages={selectedPages}
-                    onToggle={(pageIndex) => {
-                      setSelectedPages((prev) =>
-                        prev.includes(pageIndex)
-                          ? prev.filter((p) => p !== pageIndex)
-                          : [...prev, pageIndex].sort((a, b) => a - b)
-                      );
-                    }}
-                    onSelectRange={(fromPageIndex, toPageIndex) => {
-                      const start = Math.min(fromPageIndex, toPageIndex);
-                      const end = Math.max(fromPageIndex, toPageIndex);
-                      const range = Array.from({ length: end - start + 1 }, (_, idx) => start + idx);
-                      setSelectedPages((prev) =>
-                        Array.from(new Set([...prev, ...range])).sort((a, b) => a - b)
-                      );
-                    }}
-                    onSelectAll={() =>
-                      setSelectedPages(Array.from({ length: pageCount }, (_, i) => i))
-                    }
-                    onDeselectAll={() => setSelectedPages([])}
-                    onInvertSelection={() =>
-                      setSelectedPages((prev) =>
-                        Array.from({ length: pageCount }, (_, i) => i).filter((i) => !prev.includes(i))
-                      )
-                    }
-                    onSelectOdd={() =>
-                      setSelectedPages(Array.from({ length: pageCount }, (_, i) => i).filter((i) => i % 2 === 0))
-                    }
-                    onSelectEven={() =>
-                      setSelectedPages(Array.from({ length: pageCount }, (_, i) => i).filter((i) => i % 2 === 1))
-                    }
-                    maxWidth={layout.pageWidthPx * previewZoom + 160}
-                    pageOverrides={pageOverrides}
-                    disabled={isInteractionLocked}
-                  />
-
-                  <div className={isInteractionLocked ? "mt-6 pointer-events-none opacity-70" : "mt-6"}>
+                  {isAdvancedOpen ? (
                     <SlideOverridePanel
-                      open={isAdvancedOpen}
+                      open={true}
                       pdf={pdfDoc}
                       settings={settings}
                       pageOverrides={pageOverrides}
                       onOverridesChange={setPageOverrides}
                       onClose={() => setIsAdvancedOpen(false)}
+                      view="grid"
+                      overrideSelection={overrideSelection}
+                      onOverrideSelectionChange={setOverrideSelection}
                     />
-                  </div>
+                  ) : (
+                    <SlideStrip
+                      pdf={pdfDoc}
+                      selectedPages={selectedPages}
+                      onToggle={(pageIndex) => {
+                        setSelectedPages((prev) =>
+                          prev.includes(pageIndex)
+                            ? prev.filter((p) => p !== pageIndex)
+                            : [...prev, pageIndex].sort((a, b) => a - b)
+                        );
+                      }}
+                      onSelectRange={(fromPageIndex, toPageIndex) => {
+                        const start = Math.min(fromPageIndex, toPageIndex);
+                        const end = Math.max(fromPageIndex, toPageIndex);
+                        const range = Array.from({ length: end - start + 1 }, (_, idx) => start + idx);
+                        setSelectedPages((prev) =>
+                          Array.from(new Set([...prev, ...range])).sort((a, b) => a - b)
+                        );
+                      }}
+                      onSelectAll={() =>
+                        setSelectedPages(Array.from({ length: pageCount }, (_, i) => i))
+                      }
+                      onDeselectAll={() => setSelectedPages([])}
+                      onInvertSelection={() =>
+                        setSelectedPages((prev) =>
+                          Array.from({ length: pageCount }, (_, i) => i).filter((i) => !prev.includes(i))
+                        )
+                      }
+                      onSelectOdd={() =>
+                        setSelectedPages(Array.from({ length: pageCount }, (_, i) => i).filter((i) => i % 2 === 0))
+                      }
+                      onSelectEven={() =>
+                        setSelectedPages(Array.from({ length: pageCount }, (_, i) => i).filter((i) => i % 2 === 1))
+                      }
+                      maxWidth={layout.pageWidthPx * previewZoom + 160}
+                      pageOverrides={pageOverrides}
+                      disabled={isInteractionLocked}
+                    />
+                  )}
                 </CardContent>
               </Card>
             )}
