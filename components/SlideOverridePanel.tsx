@@ -21,6 +21,16 @@ interface SlideOverridePanelProps {
   pageOverrides: SlideSettingsOverrideMap;
   onOverridesChange: (next: SlideSettingsOverrideMap) => void;
   onClose: () => void;
+  embedded?: boolean;
+  /** Split rendering: "controls" = settings column only, "grid" = thumbnail grid only */
+  view?: "controls" | "grid";
+  /** Required when view is set — lifted selection state from parent */
+  overrideSelection?: number[];
+  onOverrideSelectionChange?: (next: number[]) => void;
+  /** Include/exclude state for the grid view */
+  selectedPages?: number[];
+  onTogglePage?: (pageIndex: number) => void;
+  disabled?: boolean;
 }
 
 export function SlideOverridePanel({
@@ -30,20 +40,44 @@ export function SlideOverridePanel({
   pageOverrides,
   onOverridesChange,
   onClose,
+  embedded = false,
+  view,
+  overrideSelection: externalSelection,
+  onOverrideSelectionChange,
+  selectedPages,
+  onTogglePage,
+  disabled = false,
 }: SlideOverridePanelProps) {
   const [pageCount, setPageCount] = useState(0);
   const [thumbScale, setThumbScale] = useState(100);
-  const [overrideSelection, setOverrideSelection] = useState<number[]>([]);
+  const [internalSelection, setInternalSelection] = useState<number[]>([]);
   const canvasRefs = useRef<HTMLCanvasElement[]>([]);
   const renderCache = useRef<Map<number, HTMLCanvasElement>>(new Map());
 
-  useEffect(() => {
-    if (!open) return;
-    setOverrideSelection([]);
-  }, [open]);
+  // When view is split, selection lives in the parent; otherwise use internal state.
+  const overrideSelection = useMemo(
+    () => (view ? (externalSelection ?? []) : internalSelection),
+    [view, externalSelection, internalSelection]
+  );
+
+  function setSelection(next: number[] | ((prev: number[]) => number[])) {
+    const resolved = typeof next === "function" ? next(overrideSelection) : next;
+    if (view) {
+      onOverrideSelectionChange?.(resolved);
+    } else {
+      setInternalSelection(resolved);
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
+    setSelection([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Canvas rendering only needed in the grid view.
+  useEffect(() => {
+    if (!open || view === "controls") return;
     setPageCount(pdf.numPages);
     renderCache.current.clear();
     canvasRefs.current = [];
@@ -74,7 +108,7 @@ export function SlideOverridePanel({
     return () => {
       cancelled = true;
     };
-  }, [open, pdf]);
+  }, [open, pdf, view]);
 
   const selectionSummary = useMemo(() => {
     if (overrideSelection.length === 0) return "No slides selected";
@@ -99,9 +133,9 @@ export function SlideOverridePanel({
   }
 
   function toggleSelection(pageIndex: number) {
-    setOverrideSelection((prev) =>
+    setSelection((prev) =>
       prev.includes(pageIndex)
-        ? prev.filter((page) => page !== pageIndex)
+        ? prev.filter((p) => p !== pageIndex)
         : [...prev, pageIndex].sort((a, b) => a - b)
     );
   }
@@ -130,29 +164,189 @@ export function SlideOverridePanel({
 
   if (!open) return null;
 
-  return (
-    <div className="rounded-xl border border-border bg-secondary/60 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">Advanced slide settings</h3>
-          <p className="text-sm text-muted-foreground">
-            Select slides and customize their layout independently.
-          </p>
+  // --- Controls column only (sidebar) ---
+  if (view === "controls") {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-lg border border-border bg-background p-4 text-xs text-muted-foreground">
+          {selectionSummary}
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close advanced settings">
-          <X className="h-4 w-4" />
-        </Button>
+        <div className={cn("space-y-4", overrideSelection.length === 0 && "pointer-events-none opacity-50")}>
+          <ControlsPanel settings={selectionSettings} onChange={applyOverridePatch} />
+          <div className="space-y-4 rounded-lg border border-border bg-background p-4">
+            <label className="flex items-center space-x-3 rounded-lg border border-border bg-secondary px-3 py-2">
+              <Switch
+                checked={selectionSettings.notesEnabled}
+                onCheckedChange={(value) => applyOverridePatch({ notesEnabled: Boolean(value) })}
+              />
+              <span className="text-sm">Include note-taking lines</span>
+            </label>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <Label>Number of lines</Label>
+                <span className="text-muted-foreground">{selectionSettings.notesLineCount}</span>
+              </div>
+              <Slider
+                value={[selectionSettings.notesLineCount]}
+                min={3}
+                max={12}
+                step={1}
+                disabled={!selectionSettings.notesEnabled}
+                onValueChange={([value]) => applyOverridePatch({ notesLineCount: value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <Label>Line spacing</Label>
+                <span className="text-muted-foreground">{selectionSettings.notesLineSpacingMm} mm</span>
+              </div>
+              <Slider
+                value={[selectionSettings.notesLineSpacingMm]}
+                min={4}
+                max={10}
+                step={1}
+                disabled={!selectionSettings.notesEnabled}
+                onValueChange={([value]) => applyOverridePatch({ notesLineSpacingMm: value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Notes position</Label>
+              <div className="flex flex-wrap gap-2">
+                {(["bottom", "left", "right"] as const).map((pos) => (
+                  <Button
+                    key={pos}
+                    type="button"
+                    variant={selectionSettings.notesPosition === pos ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => applyOverridePatch({ notesPosition: pos })}
+                    disabled={!selectionSettings.notesEnabled}
+                  >
+                    {pos === "bottom" ? "Under slides" : pos === "left" ? "Left" : "Right"}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <Button variant="outline" onClick={clearOverrides}>
+            Clear overrides for selected slides
+          </Button>
+        </div>
       </div>
+    );
+  }
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+  // --- Thumbnail grid only (main area) ---
+  if (view === "grid") {
+    return (
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+          <span>Slides ({overrideSelection.length}/{pageCount})</span>
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5">
+            <Label className="text-xs">Thumbnail scale</Label>
+            <div className="w-[140px]">
+              <Slider
+                value={[thumbScale]}
+                min={70}
+                max={140}
+                step={5}
+                onValueChange={([value]) => setThumbScale(value)}
+              />
+            </div>
+            <span className="tabular-nums">{thumbScale}%</span>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border bg-muted/25 p-4">
+          <div
+            className="grid gap-4"
+            style={{
+              gridTemplateColumns: `repeat(auto-fill, minmax(${Math.max(150, cardWidth)}px, 1fr))`,
+            }}
+          >
+            {Array.from({ length: pageCount }, (_, i) => {
+              const isSelected = overrideSelection.includes(i);
+              const hasOverride = Boolean(pageOverrides[i]);
+              const isIncluded = selectedPages ? selectedPages.includes(i) : true;
+              return (
+                <div
+                  key={i}
+                  className={cn(
+                    "relative flex cursor-pointer flex-col gap-2 rounded-lg bg-background px-3 py-3 transition",
+                    isSelected ? "border-2 border-primary" : "border border-border",
+                    !isIncluded && "opacity-60",
+                    disabled && "cursor-not-allowed opacity-70"
+                  )}
+                  onClick={() => !disabled && toggleSelection(i)}
+                >
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Slide {i + 1}</span>
+                    <div className="flex items-center gap-2">
+                      {hasOverride && <span className="text-[10px] text-primary">Override</span>}
+                      <label className="flex items-center gap-1">
+                        <input
+                          type="checkbox"
+                          checked={isIncluded}
+                          readOnly
+                          disabled={disabled}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onTogglePage?.(i);
+                          }}
+                          className="h-3 w-3 rounded border-border/70 text-primary"
+                        />
+                        <span>Include</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <canvas
+                      ref={(el) => {
+                        if (el) canvasRefs.current[i] = el;
+                      }}
+                      className={cn("rounded bg-white", !isIncluded && "opacity-60")}
+                      style={{ width: "100%", height: "auto" }}
+                    />
+                    {hasOverride && (
+                      <span className="absolute left-2 top-2 rounded-full bg-primary/90 px-2 py-0.5 text-[10px] font-medium text-primary-foreground">
+                        Override
+                      </span>
+                    )}
+                  </div>
+
+                  {!isIncluded && <span className="text-[10px] text-destructive">Excluded</span>}
+                  {isSelected && isIncluded && <span className="text-[10px] text-primary">Selected</span>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Full / embedded (legacy path, no view prop) ---
+  const inner = (
+    <>
+      {!embedded && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">Advanced slide settings</h3>
+            <p className="text-sm text-muted-foreground">
+              Select slides and customize their layout independently.
+            </p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close advanced settings">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+      <div className={cn("grid gap-6", embedded ? "grid-cols-1" : "mt-6 lg:grid-cols-[320px_minmax(0,1fr)]")}>
         <div className="space-y-4">
           <div className="rounded-lg border border-border bg-background p-4 text-xs text-muted-foreground">
             {selectionSummary}
           </div>
-
-          <div
-            className={cn("space-y-4", overrideSelection.length === 0 && "pointer-events-none opacity-50")}
-          >
+          <div className={cn("space-y-4", overrideSelection.length === 0 && "pointer-events-none opacity-50")}>
             <ControlsPanel settings={selectionSettings} onChange={applyOverridePatch} />
             <div className="space-y-4 rounded-lg border border-border bg-background p-4">
               <label className="flex items-center space-x-3 rounded-lg border border-border bg-secondary px-3 py-2">
@@ -246,8 +440,8 @@ export function SlideOverridePanel({
                   <div
                     key={i}
                     className={cn(
-                      "relative flex cursor-pointer flex-col gap-2 rounded-lg border bg-background px-3 py-3 transition",
-                      isSelected ? "border-primary/60 ring-2 ring-primary/30" : "border-border",
+                      "relative flex cursor-pointer flex-col gap-2 rounded-lg bg-background px-3 py-3 transition",
+                      isSelected ? "border-2 border-primary" : "border border-border",
                       !hasOverride && "opacity-90"
                     )}
                     onClick={() => toggleSelection(i)}
@@ -275,6 +469,14 @@ export function SlideOverridePanel({
           </div>
         </div>
       </div>
+    </>
+  );
+
+  if (embedded) return inner;
+
+  return (
+    <div className="rounded-xl border border-border bg-secondary/60 p-6">
+      {inner}
     </div>
   );
 }
